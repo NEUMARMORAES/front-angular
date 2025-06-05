@@ -1,0 +1,91 @@
+
+Passo a Passo para Hospedar na Hostinger
+
+1. Escolher o Tipo de Hospedagem:
+   - A Hostinger oferece dois tipos principais de hospedagem para Node.js:
+     - **Hospedagem VPS** (ideal para aplicações Node.js, mais flexível e com maior controle).
+     - **Hospedagem Compartilhada** (não é ideal para Node.js, mais restrita a PHP).
+   - Aqui vamos usar o **VPS**.
+
+2. Comprar o Plano de VPS:
+   - Acesse a Hostinger e compre um plano de **VPS**.
+   - Após a compra, você receberá detalhes de acesso ao seu **servidor VPS**, incluindo o **IP** e as credenciais de login (geralmente via SSH).
+
+3. Configuração do Servidor VPS na Hostinger:
+   - Conectar ao VPS via SSH:
+     $ ssh root@SEU_IP_DO_VPS
+   - Instalar Node.js e npm:
+     $ sudo apt update
+     $ sudo apt install nodejs
+     $ sudo apt install npm
+   - Instalar MySQL:
+     $ sudo apt install mysql-server
+     $ sudo mysql_secure_installation
+   - Criar banco de dados no MySQL:
+     CREATE DATABASE minha_aplicacao;
+     CREATE USER 'usuario'@'localhost' IDENTIFIED BY 'senha';
+     GRANT ALL PRIVILEGES ON minha_aplicacao.* TO 'usuario'@'localhost';
+     FLUSH PRIVILEGES;
+   - Instalar o Nginx (para servir a aplicação em produção):
+     $ sudo apt install nginx
+   - Configurar o Nginx:
+     Crie um arquivo de configuração:
+     $ sudo nano /etc/nginx/sites-available/minha_aplicacao
+     Adicione:
+     server {
+         listen 80;
+         server_name seu_dominio_ou_ip;
+         
+         location / {
+             proxy_pass http://localhost:3000;
+             proxy_http_version 1.1;
+             proxy_set_header Upgrade $http_upgrade;
+             proxy_set_header Connection 'upgrade';
+             proxy_set_header Host $host;
+             proxy_cache_bypass $http_upgrade;
+         }
+     }
+     Crie o link simbólico:
+     $ sudo ln -s /etc/nginx/sites-available/minha_aplicacao /etc/nginx/sites-enabled/
+   - Reinicie o Nginx:
+     $ sudo systemctl restart nginx
+
+4. Configuração do Node.js para Produção:
+   - Transferir o código para o servidor VPS:
+     $ scp -r /caminho/do/projeto usuario@SEU_IP_DO_VPS:/caminho/de/destino/no/vps
+   - Instalar dependências do Node.js no VPS:
+     $ cd /caminho/da/sua/aplicacao
+     $ npm install
+   - Iniciar a aplicação com PM2:
+     $ sudo npm install -g pm2
+     $ pm2 start index.js --name "minha-aplicacao"
+   - Configurar o PM2 para iniciar automaticamente no boot:
+     $ pm2 startup
+     $ pm2 save
+
+5. Conectar o Node.js com o MySQL:
+   - No seu código Node.js, configure a conexão MySQL:
+     const mysql = require('mysql');
+     const connection = mysql.createConnection({
+       host: 'localhost',
+       user: 'usuario',
+       password: 'senha',
+       database: 'minha_aplicacao'
+     });
+     connection.connect((err) => {
+       if (err) {
+         console.error('Erro de conexão com o banco de dados:', err.stack);
+         return;
+       }
+       console.log('Conectado ao banco de dados');
+     });
+
+6. Finalizando e Acessando sua Aplicação:
+   - Sua aplicação Node.js estará acessível via **IP Público** ou **Domínio configurado no Nginx**.
+   - Para acessar:
+     - **IP Público**: http://SEU_IP_DO_VPS
+     - **Domínio (se configurado)**: http://seu_dominio.com
+
+Alternativa:
+Se você preferir hospedar apenas o backend na Hostinger e o frontend em outro lugar, pode usar o **Netlify** ou **Vercel** para o frontend, enquanto o backend fica na Hostinger.
+

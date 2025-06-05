@@ -1,0 +1,83 @@
+
+Fluxo de Upload de XML e Geração de PDF
+
+1. **Na empresa**:
+   O cliente gera o XML e faz o upload manual para a aplicação web (usando um input de arquivo).
+
+2. **Sua aplicação salva** o XML no backend (ou processa e guarda os dados no banco).
+
+3. **Em casa**:
+   O cliente acessa sua aplicação, clica em "Visualizar" e você gera e mostra um PDF com os dados do XML.
+
+## Estrutura geral da solução
+
+### 1. Frontend (Angular) – Upload manual
+
+HTML:
+<input type="file" (change)="onFileSelected($event)" accept=".xml" />
+<button (click)="upload()">Enviar</button>
+
+Componente Angular:
+selectedFile: File | null = null;
+
+onFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files?.length) {
+    this.selectedFile = input.files[0];
+  }
+}
+
+upload() {
+  if (!this.selectedFile) return;
+
+  const formData = new FormData();
+  formData.append('file', this.selectedFile);
+
+  this.http.post('https://sua-api.com/upload', formData).subscribe({
+    next: () => alert('Upload feito com sucesso!'),
+    error: () => alert('Erro no envio.')
+  });
+}
+
+### 2. Backend (Node.js) – Processar XML e armazenar
+
+- Use `multer` para upload
+- Use `fast-xml-parser` ou `xml2js` para converter XML em JSON
+- Armazene os dados no banco ou o próprio XML se preferir
+- Gera PDF a partir dos dados com `pdfkit`, `puppeteer`, `jsreport` ou `html-pdf`
+
+### 3. Botão "Visualizar" (Angular)
+
+Este botão pode:
+
+- Abrir o PDF gerado como `blob`
+- Ou abrir uma nova aba com uma rota que renderiza o PDF
+
+Código:
+this.http.get('https://sua-api.com/nota/123/pdf', { responseType: 'blob' }).subscribe(blob => {
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+});
+
+### 4. Rota do Backend para gerar e retornar o PDF
+
+Código para rota do backend:
+app.get('/nota/:id/pdf', async (req, res) => {
+  const notaId = req.params.id;
+  const dados = await buscarNota(notaId); // do banco ou do XML
+
+  // Gerar HTML e transformar em PDF (com puppeteer ou html-pdf)
+  const pdfBuffer = await gerarPDF(dados);
+
+  res.set({
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': `inline; filename=nota-${notaId}.pdf`
+  });
+
+  res.send(pdfBuffer);
+});
+
+Resultado:
+- Upload XML feito na empresa
+- Dados ficam salvos e disponíveis
+- PDF acessível de qualquer lugar
